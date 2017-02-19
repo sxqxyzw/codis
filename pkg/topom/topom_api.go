@@ -91,6 +91,9 @@ func newApiServer(t *Topom) http.Handler {
 			r.Put("/add/:xauth/:gid/:addr", api.GroupAddServer)
 			r.Put("/add/:xauth/:gid/:addr/:datacenter", api.GroupAddServer)
 			r.Put("/del/:xauth/:gid/:addr", api.GroupDelServer)
+			r.Put("/scale-add/:xauth/:gid/:addr", api.GroupScaleAdd)
+			r.Put("/scale-add/:xauth/:gid/:addr/:datacenter", api.GroupScaleAdd)
+			r.Put("/scale-del/:xauth/:gid", api.GroupScaleDel)
 			r.Put("/promote/:xauth/:gid/:addr", api.GroupPromoteServer)
 			r.Put("/replica-groups/:xauth/:gid/:addr/:value", api.EnableReplicaGroups)
 			r.Put("/replica-groups-all/:xauth/:value", api.EnableReplicaGroupsAll)
@@ -395,6 +398,51 @@ func (s *apiServer) GroupDelServer(params martini.Params) (int, string) {
 		return rpc.ApiResponseError(err)
 	}
 	if err := s.topom.GroupDelServer(gid, addr); err != nil {
+		return rpc.ApiResponseError(err)
+	} else {
+		return rpc.ApiResponseJson("OK")
+	}
+}
+
+func (s *apiServer) GroupScaleAdd(params martini.Params) (int, string) {
+	if err := s.verifyXAuth(params); err != nil {
+		return rpc.ApiResponseError(err)
+	}
+	gid, err := s.parseInteger(params, "gid")
+	if err != nil {
+		return rpc.ApiResponseError(err)
+	}
+	addr, err := s.parseAddr(params)
+	if err != nil {
+		return rpc.ApiResponseError(err)
+	}
+	dc := params["datacenter"]
+	c, err := redis.NewClient(addr, s.topom.Config().ProductAuth, time.Second)
+	if err != nil {
+		log.WarnErrorf(err, "create redis client to %s failed", addr)
+		return rpc.ApiResponseError(err)
+	}
+	defer c.Close()
+	if _, err := c.SlotsInfo(); err != nil {
+		log.WarnErrorf(err, "redis %s check slots-info failed", addr)
+		return rpc.ApiResponseError(err)
+	}
+	if err := s.topom.GroupScaleAdd(gid, dc, addr); err != nil {
+		return rpc.ApiResponseError(err)
+	} else {
+		return rpc.ApiResponseJson("OK")
+	}
+}
+
+func (s *apiServer) GroupScaleDel(params martini.Params) (int, string) {
+	if err := s.verifyXAuth(params); err != nil {
+		return rpc.ApiResponseError(err)
+	}
+	gid, err := s.parseInteger(params, "gid")
+	if err != nil {
+		return rpc.ApiResponseError(err)
+	}
+	if err := s.topom.GroupScaleDel(gid); err != nil {
 		return rpc.ApiResponseError(err)
 	} else {
 		return rpc.ApiResponseJson("OK")
@@ -864,6 +912,21 @@ func (c *ApiClient) GroupAddServer(gid int, dc, addr string) error {
 
 func (c *ApiClient) GroupDelServer(gid int, addr string) error {
 	url := c.encodeURL("/api/topom/group/del/%s/%d/%s", c.xauth, gid, addr)
+	return rpc.ApiPutJson(url, nil, nil)
+}
+
+func (c *ApiClient) GroupScaleAdd(gid int, dc, addr string) error {
+	var url string
+	if dc != "" {
+		url = c.encodeURL("/api/topom/group/scale-add/%s/%d/%s/%s", c.xauth, gid, addr, dc)
+	} else {
+		url = c.encodeURL("/api/topom/group/scale-add/%s/%d/%s", c.xauth, gid, addr)
+	}
+	return rpc.ApiPutJson(url, nil, nil)
+}
+
+func (c *ApiClient) GroupScaleDel(gid int) error {
+	url := c.encodeURL("/api/topom/group/scale-del/%s/%d", c.xauth, gid)
 	return rpc.ApiPutJson(url, nil, nil)
 }
 

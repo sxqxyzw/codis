@@ -218,10 +218,15 @@ func (s *Topom) Start(routines bool) error {
 	go func() {
 		for !s.IsClosed() {
 			if s.IsOnline() {
-				if err := s.ProcessSlotAction(); err != nil {
-					log.WarnErrorf(err, "process slot action failed")
-					time.Sleep(time.Second * 5)
+				if s.checkSlotTime() {
+					if err := s.ProcessSlotAction(); err != nil {
+						log.WarnErrorf(err, "process slot action failed")
+						time.Sleep(time.Second * 5)
+					}
+				} else {
+					time.Sleep(time.Minute * 5)
 				}
+
 			}
 			time.Sleep(time.Second)
 		}
@@ -239,6 +244,21 @@ func (s *Topom) Start(routines bool) error {
 		}
 	}()
 
+	if s.config.AutoSlotsBalance {
+		go func() {
+			for !s.IsClosed() {
+				if s.IsOnline() {
+					if s.checkSlotTime() {
+						if _, err := s.SlotsRebalance(true); err != nil {
+							log.WarnErrorf(err, "process slot rebalance failed")
+						}
+					}
+				}
+				time.Sleep(time.Minute * 5)
+			}
+		}()
+	}
+
 	return nil
 }
 
@@ -248,6 +268,16 @@ func (s *Topom) XAuth() string {
 
 func (s *Topom) Model() *models.Topom {
 	return s.model
+}
+
+func (s *Topom) checkSlotTime() bool {
+	begin := s.config.SlotsMigrateBeginHour
+	end := s.config.SlotsMigrateEndHour
+	now := time.Now()
+	if begin > end {
+		return begin <= now.Hour() || now.Hour() <= end
+	}
+	return begin <= now.Hour() && now.Hour() <= end
 }
 
 var ErrNotOnline = errors.New("topom is not online")

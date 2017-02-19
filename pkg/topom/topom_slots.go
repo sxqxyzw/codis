@@ -406,3 +406,67 @@ func (s *Topom) SlotsRebalance(confirm bool) (map[int]int, error) {
 	}
 	return plans, nil
 }
+
+func (s *Topom) SlotsRebalanceRemoveGroup(gid int, confirm bool) (map[int]int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	ctx, err := s.newContext()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = ctx.getGroup(gid)
+	if err != nil {
+		return nil, err
+	}
+
+	var count = make(map[int]int)
+	for _, g := range ctx.group {
+		if len(g.Servers) != 0 {
+			count[g.Id] = 0
+		}
+	}
+	if len(count) < 2 {
+		return nil, errors.Errorf("valid group numbers not enough")
+	}
+
+	var pending []int
+	for _, m := range ctx.slots {
+		if m.Action.TargetId == gid || m.GroupId == gid {
+			pending = append(pending, m.Id)
+		} else {
+			continue
+		}
+	}
+
+	var aver = (len(pending) + len(count) - 1 - 1) / (len(count) - 1)
+	var plans = make(map[int]int)
+	for _, g := range ctx.group {
+		if g.Id == gid {
+			continue
+		}
+		if len(g.Servers) != 0 {
+			for i := 0; i < aver; i++ {
+				plans[pending[0]], pending = g.Id, pending[1:]
+			}
+		}
+	}
+	if !confirm {
+		return plans, nil
+	}
+	for sid, gid := range plans {
+		m, err := ctx.getSlotMapping(sid)
+		if err != nil {
+			return nil, err
+		}
+		defer s.dirtySlotsCache(m.Id)
+
+		m.Action.State = models.ActionPending
+		m.Action.Index = ctx.maxSlotActionIndex() + 1
+		m.Action.TargetId = gid
+		if err := s.storeUpdateSlotMapping(m); err != nil {
+			return nil, err
+		}
+	}
+	return plans, nil
+}

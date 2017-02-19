@@ -84,6 +84,9 @@ func (t *cmdDashboard) Main(d map[string]interface{}) {
 	case d["--rebalance"].(bool):
 		t.handleSlotRebalance(d)
 
+	case d["--scale-manage"].(bool):
+		t.handleScaleManage(d)
+
 	}
 }
 
@@ -877,6 +880,38 @@ func (t *cmdDashboard) handleSlotRebalance(d map[string]interface{}) {
 					fmt.Println(cmd)
 				}
 			}
+		}
+
+	}
+}
+
+func (t *cmdDashboard) handleScaleManage(d map[string]interface{}) {
+	c := t.newTopomClient()
+
+	switch {
+
+	case d["--group-add"].(bool):
+
+		gid, addr := utils.ArgumentIntegerMust(d, "--gid"), utils.ArgumentMust(d, "--addr")
+		dc, _ := utils.Argument(d, "--datacenter")
+		log.Debugf("call rpc scale-manage-add-group %d to dashboard %s", gid, t.addr)
+		if d["--confirm"].(bool) {
+			if err := c.GroupScaleAdd(gid, dc, addr); err != nil {
+				log.PanicErrorf(err, "call rpc scale-manage-add-group to dashboard %s failed", t.addr)
+			}
+			log.Debugf("call rpc scale-manage-add-group OK")
+		}
+
+	case d["--group-del"].(bool):
+
+		gid := utils.ArgumentIntegerMust(d, "--gid")
+
+		log.Debugf("call rpc scale-manage-del-group %d to dashboard %s", gid, t.addr)
+		if d["--confirm"].(bool) {
+			if err := c.GroupScaleDel(gid); err != nil {
+				log.PanicErrorf(err, "call rpc scale-manage-del-group to dashboard %s failed", t.addr)
+			}
+			log.Debugf("call rpc scale-manage-del-group OK")
 		}
 
 	}

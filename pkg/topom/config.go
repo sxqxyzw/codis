@@ -38,6 +38,11 @@ sentinel_down_after = "30s"
 sentinel_failover_timeout = "5m"
 sentinel_notification_script = ""
 sentinel_client_reconfig_script = ""
+
+# Set configs for slot manage
+auto_slots_balance = false
+slots_migrate_begin_hour = 0
+slots_migrate_end_hour = 7
 `
 
 type Config struct {
@@ -57,6 +62,10 @@ type Config struct {
 	SentinelFailoverTimeout      timesize.Duration `toml:"sentinel_failover_timeout" json:"sentinel_failover_timeout"`
 	SentinelNotificationScript   string            `toml:"sentinel_notification_script" json:"sentinel_notification_script"`
 	SentinelClientReconfigScript string            `toml:"sentinel_client_reconfig_script" json:"sentinel_client_reconfig_script"`
+
+	AutoSlotsBalance      bool `toml:"auto_slots_balance" json:"auto_slots_balance"`
+	SlotsMigrateBeginHour int  `toml:"slots_migrate_begin_hour" json:"slots_migrate_begin_hour"`
+	SlotsMigrateEndHour   int  `toml:"slots_migrate_end_hour" json:"slots_migrate_end_hour"`
 }
 
 func NewDefaultConfig() *Config {

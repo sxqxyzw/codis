@@ -48,6 +48,8 @@ Usage:
 	codis-admin [-v] --dashboard=ADDR            --slot-action    --interval=VALUE
 	codis-admin [-v] --dashboard=ADDR            --slot-action    --disabled=VALUE
 	codis-admin [-v] --dashboard=ADDR            --rebalance     [--confirm]
+	codis-admin [-v] --dashboard=ADDR            --scale-manage   --group-add --gid=ID --addr=ADDR [--datacenter=DATACENTER] [--confirm]
+	codis-admin [-v] --dashboard=ADDR            --scale-manage   --group-del --gid=ID [--confirm]
 	codis-admin [-v] --dashboard=ADDR            --sentinel-add   --addr=ADDR
 	codis-admin [-v] --dashboard=ADDR            --sentinel-del   --addr=ADDR [--force]
 	codis-admin [-v] --dashboard=ADDR            --sentinel-resync

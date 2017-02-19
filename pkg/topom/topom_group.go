@@ -194,6 +194,49 @@ func (s *Topom) GroupDelServer(gid int, addr string) error {
 	return s.storeUpdateGroup(g)
 }
 
+func (s *Topom) GroupScaleAdd(gid int, dc, addr string) error {
+	err := s.CreateGroup(gid)
+	if err != nil {
+		return err
+	}
+
+	err = s.GroupAddServer(gid, dc, addr)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Topom) GroupScaleDel(gid int) error {
+	_, err := s.SlotsRebalanceRemoveGroup(gid, true)
+	if err != nil {
+		return err
+	}
+	ctx, err := s.newContext()
+	if err != nil {
+		return err
+	}
+
+	g, err := ctx.getGroup(gid)
+	if err != nil {
+		return err
+	}
+	for _, server := range g.Servers {
+		err = s.GroupDelServer(gid, server.Addr)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = s.RemoveGroup(gid)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *Topom) GroupPromoteServer(gid int, addr string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

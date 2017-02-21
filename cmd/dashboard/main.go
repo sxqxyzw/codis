@@ -25,7 +25,7 @@ import (
 func main() {
 	const usage = `
 Usage:
-	codis-dashboard [--ncpu=N] [--config=CONF] [--log=FILE] [--log-level=LEVEL] [--host-admin=ADDR] [--pidfile=FILE]
+	codis-dashboard [--ncpu=N] [--config=CONF] [--log=FILE] [--log-level=LEVEL] [--host-admin=ADDR] [--zookeeper=ADDR|--etcd=ADDR|--filesystem=ROOT|--fillslots=FILE] [--pidfile=FILE]
 	codis-dashboard  --default-config
 	codis-dashboard  --version
 
@@ -86,6 +86,33 @@ Options:
 	if s, ok := utils.Argument(d, "--host-admin"); ok {
 		config.HostAdmin = s
 		log.Warnf("option --host-admin = %s", s)
+	}
+
+	var coordinator struct {
+		name string
+		addr string
+	}
+
+	switch {
+
+	case d["--zookeeper"] != nil:
+		coordinator.name = "zookeeper"
+		coordinator.addr = utils.ArgumentMust(d, "--zookeeper")
+
+	case d["--etcd"] != nil:
+		coordinator.name = "etcd"
+		coordinator.addr = utils.ArgumentMust(d, "--etcd")
+
+	case d["--filesystem"] != nil:
+		coordinator.name = "filesystem"
+		coordinator.addr = utils.ArgumentMust(d, "--filesystem")
+
+	}
+
+	if coordinator.name != "" {
+		log.Warnf("option --%s = %s", coordinator.name, coordinator.addr)
+		config.CoordinatorName = coordinator.name
+		config.CoordinatorAddr = coordinator.addr
 	}
 
 	client, err := models.NewClient(config.CoordinatorName, config.CoordinatorAddr, time.Minute)

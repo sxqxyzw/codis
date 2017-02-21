@@ -3,11 +3,15 @@
 hostip=`ifconfig eth0 | grep "inet " | awk -F " " '{print $2}'`
 
 if [ "x$hostip" == "x" ]; then
-    echo "cann't resolve host ip address"
-    exit 1
+    hostip=`docker-machine ip`
+    if [ "x$hostip" == "x" ]; then
+        echo "cann't resolve host ip address"
+        exit 1
+    fi
 fi
 
 mkdir -p log
+
 CODIS=/gopath/src/github.com/CodisLabs/codis
 
 case "$1" in

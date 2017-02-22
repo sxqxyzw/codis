@@ -47,6 +47,7 @@ Usage:
 	codis-admin [-v] --dashboard=ADDR            --slot-action    --create-range --beg=ID --end=ID --gid=ID
 	codis-admin [-v] --dashboard=ADDR            --slot-action    --interval=VALUE
 	codis-admin [-v] --dashboard=ADDR            --slot-action    --disabled=VALUE
+	codis-admin [-v] --dashboard=ADDR            --slots-dislodge --gid=ID     [--confirm]
 	codis-admin [-v] --dashboard=ADDR            --rebalance     [--confirm]
 	codis-admin [-v] --dashboard=ADDR            --sentinel-add   --addr=ADDR
 	codis-admin [-v] --dashboard=ADDR            --sentinel-del   --addr=ADDR [--force]

@@ -84,6 +84,9 @@ func (t *cmdDashboard) Main(d map[string]interface{}) {
 	case d["--rebalance"].(bool):
 		t.handleSlotRebalance(d)
 
+	case d["--slots-dislodge"].(bool):
+		t.handleSlotsDislodge(d)
+
 	}
 }
 
@@ -876,6 +879,97 @@ func (t *cmdDashboard) handleSlotRebalance(d map[string]interface{}) {
 				for _, cmd := range cmds[g.Id] {
 					fmt.Println(cmd)
 				}
+			}
+		}
+
+	}
+}
+
+func (t *cmdDashboard) handleSlotsDislodge(d map[string]interface{}) {
+	gid := utils.ArgumentIntegerMust(d, "--gid")
+
+	c := t.newTopomClient()
+
+	log.Debugf("call rpc stats to dashboard %s", t.addr)
+	s, err := c.Stats()
+	if err != nil {
+		log.PanicErrorf(err, "call rpc stats to dashboard %s failed", t.addr)
+	}
+	log.Debugf("call rpc stats OK")
+
+	if s.Slots == nil {
+		log.Panicf("slots is nil")
+	}
+	if s.Group.Models == nil {
+		log.Panicf("group is nil")
+	}
+
+	var count = make(map[int]int)
+	for _, g := range s.Group.Models {
+		if len(g.Servers) != 0 {
+			count[g.Id] = 0
+		}
+	}
+	if len(count) < 2 {
+		log.Panicf("valid group numbers not enough")
+	}
+
+	var pending []int
+	for _, s := range s.Slots {
+		if s.Action.TargetId == gid || s.GroupId == gid {
+			pending = append(pending, s.Id)
+		} else {
+			continue
+		}
+	}
+
+	var aver = (len(pending) + len(count) - 1 - 1) / (len(count) - 1)
+	var plans = make(map[int]int)
+	for _, g := range s.Group.Models {
+		if g.Id == gid {
+			continue
+		}
+
+		if len(g.Servers) == 0 {
+			continue
+		}
+
+		for i := 0; i < aver && len(pending) != 0; i++ {
+			plans[pending[0]] = g.Id
+			pending = pending[1:]
+		}
+	}
+	fmt.Println(plans)
+
+	switch {
+
+	case d["--confirm"].(bool):
+
+		if len(plans) == 0 {
+			fmt.Println("nothing changes")
+		} else {
+			for sid, gid := range plans {
+				fmt.Printf("migrate slot-%4d to group-%d\n", sid, gid)
+				log.Debugf("call rpc create-slot-action-range to dashboard %s", t.addr)
+				if err := c.SlotCreateAction(sid, gid); err != nil {
+					log.PanicErrorf(err, "call rpc create-slot-action to dashboard %s failed", t.addr)
+				}
+				log.Debugf("call rpc create-slot-action OK")
+			}
+			fmt.Println("done")
+		}
+
+	default:
+
+		if len(plans) == 0 {
+			fmt.Println("# nothing changes")
+		} else {
+			fmt.Printf("CODIS_ADMIN=codis-admin\n")
+			fmt.Printf("CODIS_DASHBOARD=%s\n", t.addr)
+			fmt.Printf("FLAGS=\n")
+			for sid, gid := range plans {
+				fmt.Printf("${CODIS_ADMIN} ${FLAGS} --dashboard=${CODIS_DASHBOARD} ")
+				fmt.Printf("--slot-action --create --sid=%d --gid=%d\n", sid, gid)
 			}
 		}
 

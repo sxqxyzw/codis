@@ -88,8 +88,8 @@ func newApiServer(t *Topom) http.Handler {
 			r.Put("/remove/:xauth/:gid", api.RemoveGroup)
 			r.Put("/resync/:xauth/:gid", api.ResyncGroup)
 			r.Put("/resync-all/:xauth", api.ResyncGroupAll)
-			r.Put("/add/:xauth/:gid/:addr", api.GroupAddServer)
-			r.Put("/add/:xauth/:gid/:addr/:datacenter", api.GroupAddServer)
+			r.Put("/add/:xauth/:gid/:addr/:check", api.GroupAddServer)
+			r.Put("/add/:xauth/:gid/:addr/:datacenter/:check", api.GroupAddServer)
 			r.Put("/del/:xauth/:gid/:addr", api.GroupDelServer)
 			r.Put("/promote/:xauth/:gid/:addr", api.GroupPromoteServer)
 			r.Put("/replica-groups/:xauth/:gid/:addr/:value", api.EnableReplicaGroups)
@@ -366,16 +366,27 @@ func (s *apiServer) GroupAddServer(params martini.Params) (int, string) {
 		return rpc.ApiResponseError(err)
 	}
 	dc := params["datacenter"]
-	c, err := redis.NewClient(addr, s.topom.Config().ProductAuth, time.Second)
+	check, err := s.parseInteger(params, "check")
 	if err != nil {
-		log.WarnErrorf(err, "create redis client to %s failed", addr)
 		return rpc.ApiResponseError(err)
 	}
-	defer c.Close()
-	if _, err := c.SlotsInfo(); err != nil {
-		log.WarnErrorf(err, "redis %s check slots-info failed", addr)
-		return rpc.ApiResponseError(err)
+	if check != 0 {
+		if err := s.topom.GroupAddPermitCheck(gid, addr); err != nil {
+			return rpc.ApiResponseError(err)
+		}
 	}
+	/*
+		c, err := redis.NewClient(addr, s.topom.Config().ProductAuth, time.Second)
+		if err != nil {
+			log.WarnErrorf(err, "create redis client to %s failed", addr)
+			return rpc.ApiResponseError(err)
+		}
+		defer c.Close()
+		if _, err := c.SlotsInfo(); err != nil {
+			log.WarnErrorf(err, "redis %s check slots-info failed", addr)
+			return rpc.ApiResponseError(err)
+		}
+	*/
 	if err := s.topom.GroupAddServer(gid, dc, addr); err != nil {
 		return rpc.ApiResponseError(err)
 	} else {
@@ -872,12 +883,16 @@ func (c *ApiClient) ResyncGroupAll() error {
 	return rpc.ApiPutJson(url, nil, nil)
 }
 
-func (c *ApiClient) GroupAddServer(gid int, dc, addr string) error {
+func (c *ApiClient) GroupAddServer(gid int, dc, addr string, pc bool) error {
 	var url string
+	var value int
+	if pc {
+		value = 1
+	}
 	if dc != "" {
-		url = c.encodeURL("/api/topom/group/add/%s/%d/%s/%s", c.xauth, gid, addr, dc)
+		url = c.encodeURL("/api/topom/group/add/%s/%d/%s/%s/%d", c.xauth, gid, addr, dc, value)
 	} else {
-		url = c.encodeURL("/api/topom/group/add/%s/%d/%s", c.xauth, gid, addr)
+		url = c.encodeURL("/api/topom/group/add/%s/%d/%s/%d", c.xauth, gid, addr, value)
 	}
 	return rpc.ApiPutJson(url, nil, nil)
 }

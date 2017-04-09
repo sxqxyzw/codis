@@ -35,7 +35,7 @@ Usage:
 	codis-admin [-v] --dashboard=ADDR            --create-group   --gid=ID
 	codis-admin [-v] --dashboard=ADDR            --remove-group   --gid=ID
 	codis-admin [-v] --dashboard=ADDR            --resync-group  [--gid=ID | --all]
-	codis-admin [-v] --dashboard=ADDR            --group-add      --gid=ID --addr=ADDR [--datacenter=DATACENTER]
+	codis-admin [-v] --dashboard=ADDR            --group-add      --gid=ID --addr=ADDR [--datacenter=DATACENTER]  [--permit-check]
 	codis-admin [-v] --dashboard=ADDR            --group-del      --gid=ID --addr=ADDR
 	codis-admin [-v] --dashboard=ADDR            --group-status
 	codis-admin [-v] --dashboard=ADDR            --replica-groups --gid=ID --addr=ADDR (--enable|--disable)
@@ -48,6 +48,7 @@ Usage:
 	codis-admin [-v] --dashboard=ADDR            --slot-action    --create-range --beg=ID --end=ID --gid=ID
 	codis-admin [-v] --dashboard=ADDR            --slot-action    --interval=VALUE
 	codis-admin [-v] --dashboard=ADDR            --slot-action    --disabled=VALUE
+	codis-admin [-v] --dashboard=ADDR            --group-slots-expel --gid=ID     [--confirm]
 	codis-admin [-v] --dashboard=ADDR            --rebalance     [--confirm]
 	codis-admin [-v] --dashboard=ADDR            --sentinel-add   --addr=ADDR
 	codis-admin [-v] --dashboard=ADDR            --sentinel-del   --addr=ADDR [--force]

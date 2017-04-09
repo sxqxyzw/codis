@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: codis-ha
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: codis-ha
+    spec:
+      imagePullSecrets:
+      - name: cn-registry
+      containers:
+      - name: codis-ha
+        image: codis-image3
+        imagePullPolicy: Never
+        command: ["codis-ha"]
+        args: ["-l","log/codis-ha.log","--interval","5","--dashboard=codis-dashboard:18080"]
+        env:
+        - name: CODIS_PATH
+          value: "/gopath/src/github.com/CodisLabs/codis"
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1Gi
+          requests:
+            cpu: "0.1"
+            memory: 0.1Gi

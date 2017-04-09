@@ -101,6 +101,34 @@ func (s *Topom) ResyncGroupAll() error {
 	return nil
 }
 
+func (s *Topom) GroupAddPermitCheck(gid int, addr string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	ctx, err := s.newContext()
+	if err != nil {
+		return err
+	}
+
+	if addr == "" {
+		return errors.Errorf("invalid server address")
+	}
+
+	g, err := ctx.getGroup(gid)
+	if err != nil {
+		return err
+	}
+	if g.Promoting.State != models.ActionNothing {
+		return errors.Errorf("group-[%d] is promoting", g.Id)
+	}
+
+	if len(g.Servers) > 1 && addr == ctx.getGroupMaster(gid) {
+		return errors.Errorf("not permit, wait ha promote master")
+	}
+	defer s.dirtyGroupCache(g.Id)
+
+	return nil
+}
+
 func (s *Topom) GroupAddServer(gid int, dc, addr string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -25,7 +25,7 @@ import (
 func main() {
 	const usage = `
 Usage:
-	codis-dashboard [--ncpu=N] [--config=CONF] [--log=FILE] [--log-level=LEVEL] [--host-admin=ADDR] [--pidfile=FILE]
+	codis-dashboard [--ncpu=N] [--config=CONF] [--log=FILE] [--log-level=LEVEL] [--host-admin=ADDR]  [--zookeeper=ADDR|--etcd=ADDR|--filesystem=ROOT] [--pidfile=FILE]
 	codis-dashboard  --default-config
 	codis-dashboard  --version
 
@@ -86,6 +86,18 @@ Options:
 	if s, ok := utils.Argument(d, "--host-admin"); ok {
 		config.HostAdmin = s
 		log.Warnf("option --host-admin = %s", s)
+	}
+
+	switch {
+	case d["--zookeeper"] != nil:
+		config.CoordinatorName = "zookeeper"
+		config.CoordinatorAddr = utils.ArgumentMust(d, "--zookeeper")
+	case d["--etcd"] != nil:
+		config.CoordinatorName = "etcd"
+		config.CoordinatorAddr = utils.ArgumentMust(d, "--etcd")
+	case d["--filesystem"] != nil:
+		config.CoordinatorName = "filesystem"
+		config.CoordinatorAddr = utils.ArgumentMust(d, "--filesystem")
 	}
 
 	client, err := models.NewClient(config.CoordinatorName, config.CoordinatorAddr, time.Minute)

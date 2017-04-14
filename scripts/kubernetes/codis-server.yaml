@@ -14,8 +14,8 @@ spec:
       - name: cn-registry
       containers:
       - name: codis-server
-        image: codis-image3
-        imagePullPolicy: Never
+        image: codis-image:k8s
+        imagePullPolicy: IfNotPresent
         command: ["codis-server"]
         args: ["$(CODIS_PATH)/config/redis.conf","--logfile","redis.log","--protected-mode", "no", "--bind", "$(POD_NAME).codis-server.$(POD_NAMESPACE).svc.cluster.local"]
         lifecycle:

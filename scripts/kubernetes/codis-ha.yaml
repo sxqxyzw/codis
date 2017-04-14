@@ -13,8 +13,8 @@ spec:
       - name: cn-registry
       containers:
       - name: codis-ha
-        image: codis-image3
-        imagePullPolicy: Never
+        image: codis-image:k8s
+        imagePullPolicy: IfNotPresent
         command: ["codis-ha"]
         args: ["-l","log/codis-ha.log","--interval","5","--dashboard=codis-dashboard:18080"]
         env:

@@ -1,5 +1,9 @@
 #!/bin/bash
 
+### PRODUCT_NAME="codis-demo"
+### sed -i  "/name: CODIS_PRODUCT/{n;s/\".*\"/\"${PRODUCT_NAME}\"/}" codis-dashboard.yaml
+### sed -i  "/name: CODIS_PRODUCT/{n;s/\".*\"/\"${PRODUCT_NAME}\"/}" codis-proxy.yaml
+
 ### 清理原来codis遗留数据
 function cleanup() {
     kubectl delete -f .

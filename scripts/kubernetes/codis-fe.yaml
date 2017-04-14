@@ -13,8 +13,8 @@ spec:
       - name: cn-registry
       containers:
       - name: codis-fe
-        image: codis-image3
-        imagePullPolicy: Never
+        image: codis-image:k8s
+        imagePullPolicy: IfNotPresent
         command: ["codis-fe"]
         args: ["-l","log/fe.log","--zookeeper","zookeeper:2181","--listen=$(POD_IP):8080","--assets=$(CODIS_PATH)/bin/assets"]
         env:

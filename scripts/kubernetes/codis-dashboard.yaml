@@ -14,10 +14,10 @@ spec:
       - name: cn-registry
       containers:
       - name: codis-dashboard
-        image: codis-image3
-        imagePullPolicy: Never
+        image: codis-image:k8s
+        imagePullPolicy: IfNotPresent
         command: ["codis-dashboard"]
-        args: ["-l","log/dashboard.log","-c","$(CODIS_PATH)/config/dashboard.toml","--host-admin","$(POD_IP):18080","--zookeeper","$(ZK_ADDR)","--pidfile","log/dashboard.pid"]
+        args: ["-l","log/dashboard.log","-c","$(CODIS_PATH)/config/dashboard.toml","--host-admin","$(POD_IP):18080","--zookeeper","$(ZK_ADDR)","--product_name","$(CODIS_PRODUCT)","--pidfile","log/dashboard.pid"]
         lifecycle:
           postStart:
             exec:
@@ -34,6 +34,8 @@ spec:
               fieldPath: status.podIP
         - name: ZK_ADDR
           value: "zookeeper:2181"
+        - name: CODIS_PRODUCT
+          value: "codis-demo"
         ports:
         - containerPort: 18080
           name: dashboard

@@ -25,7 +25,7 @@ import (
 func main() {
 	const usage = `
 Usage:
-	codis-dashboard [--ncpu=N] [--config=CONF] [--log=FILE] [--log-level=LEVEL] [--host-admin=ADDR]  [--zookeeper=ADDR|--etcd=ADDR|--filesystem=ROOT] [--pidfile=FILE]
+	codis-dashboard [--ncpu=N] [--config=CONF] [--log=FILE] [--log-level=LEVEL] [--host-admin=ADDR]  [--zookeeper=ADDR|--etcd=ADDR|--filesystem=ROOT]  [--product_name=NAME]  [--product_auth=AUTH]  [--pidfile=FILE]
 	codis-dashboard  --default-config
 	codis-dashboard  --version
 
@@ -98,6 +98,15 @@ Options:
 	case d["--filesystem"] != nil:
 		config.CoordinatorName = "filesystem"
 		config.CoordinatorAddr = utils.ArgumentMust(d, "--filesystem")
+	}
+
+	if s, ok := utils.Argument(d, "--product_name"); ok {
+		config.ProductName = s
+		log.Warnf("option --product_nam = %s", s)
+	}
+	if s, ok := utils.Argument(d, "--product_auth"); ok {
+		config.ProductAuth = s
+		log.Warnf("option --product_auth = %s", s)
 	}
 
 	client, err := models.NewClient(config.CoordinatorName, config.CoordinatorAddr, time.Minute)

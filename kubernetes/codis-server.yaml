@@ -4,20 +4,20 @@ metadata:
   name: codis-server
 spec:
   serviceName: codis-server
-  replicas: 2
+  replicas: 4
   template:
     metadata:
       labels:
         app: codis-server
     spec:
       imagePullSecrets:
-      - name: cn-registry
+      - name: harbor-registry
       containers:
       - name: codis-server
-        image: codis-image:k8s
+        image: codis-image
         imagePullPolicy: IfNotPresent
         command: ["codis-server"]
-        args: ["$(CODIS_PATH)/config/redis.conf","--logfile","redis.log","--protected-mode", "no", "--bind", "$(POD_NAME).codis-server.$(POD_NAMESPACE).svc.cluster.local"]
+        args: ["$(CODIS_PATH)/config/redis.conf","--logfile","$(POD_NAME).log","--protected-mode", "no", "--save", "", "--bind", "$(POD_NAME).codis-server.$(POD_NAMESPACE).svc.cluster.local"]
         lifecycle:
           postStart:
             exec:
@@ -25,8 +25,7 @@ spec:
                         sid=`hostname |awk -F'-' '{print $3}'`;gid=$(expr $sid / ${SERVER_REPLICA} + 1); \
                         local=codis-server-${sid}.codis-server.${POD_NAMESPACE}.svc.cluster.local; \
                         codis-admin --dashboard=codis-dashboard:18080 --create-group --gid=${gid} 1>/dev/null 2>&1; \
-                        codis-admin --dashboard=codis-dashboard:18080 --group-add --gid=${gid} --addr=${local}:6379 --permit-check || exit 1; \
-                        codis-admin --dashboard=codis-dashboard:18080 --sync-action --create --addr=${local}:6379"]
+                        codis-admin --dashboard=codis-dashboard:18080 --group-add --gid=${gid} --addr=${local}:6379 --permit-check || exit 1"]
           preStop:
             exec:
               command: ["/bin/sh", "-c", "codis-admin --dashboard=codis-dashboard:18080 --reload; if [ $? != 0 ]; then exit 1; fi; \
@@ -48,11 +47,11 @@ spec:
               fieldPath: metadata.namespace
         ports:
         - containerPort: 6379
-          name: service-port
+          name: server-port
         resources:
           limits:
-            cpu: "1"
-            memory: 2Gi
+            cpu: "2"
+            memory: 6Gi
           requests:
-           cpu: "0.1"
-           memory: 0.1Gi
+            cpu: "0.1"
+            memory: 0.1Gi

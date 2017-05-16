@@ -11,13 +11,13 @@ spec:
         app: codis-dashboard
     spec:
       imagePullSecrets:
-      - name: cn-registry
+      - name: your-registry
       containers:
       - name: codis-dashboard
-        image: codis-image:k8s
+        image: codis-image
         imagePullPolicy: IfNotPresent
         command: ["codis-dashboard"]
-        args: ["-l","log/dashboard.log","-c","$(CODIS_PATH)/config/dashboard.toml","--host-admin","$(POD_IP):18080","--zookeeper","$(ZK_ADDR)","--product_name","$(CODIS_PRODUCT)","--pidfile","log/dashboard.pid"]
+        args: ["-l","log/$(POD_NAME).log","-c","$(CODIS_PATH)/config/dashboard.toml","--host-admin","$(POD_IP):18080","--zookeeper","$(ZK_ADDR)","--pidfile","log/dashboard.pid"]
         lifecycle:
           postStart:
             exec:
@@ -32,17 +32,19 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
         - name: ZK_ADDR
           value: "zookeeper:2181"
-        - name: CODIS_PRODUCT
-          value: "codis-demo"
         ports:
         - containerPort: 18080
           name: dashboard
         resources:
           limits:
-            cpu: "1"
-            memory: 1Gi
+            cpu: "4"
+            memory: 4Gi
           requests:
             cpu: "0.1"
-            memory: 0.2Gi
+            memory: 0.1Gi

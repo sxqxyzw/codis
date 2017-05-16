@@ -282,6 +282,20 @@ func (hc *HealthyChecker) Maintains(client *topom.ApiClient, maxdown int) {
 					}
 					log.Warnf("done.")
 				}
+			case CodeAlive:
+				for i := 1; i < len(g.Servers); i++ {
+					var addr = g.Servers[i].Addr
+					switch hc.sstatus[addr] {
+					case CodeSyncReady:
+						continue
+					case CodeSyncBroken, CodeSyncError:
+						log.Warnf("try to sync group-[%d]  slave %s with master %s", g.Id, addr, g.Servers[0].Addr)
+						if err := client.SyncCreateAction(addr); err != nil {
+							log.PanicErrorf(err, "rpc sync slave failed")
+						}
+						log.Warnf("sync done.")
+					}
+				}
 			}
 		}
 	}

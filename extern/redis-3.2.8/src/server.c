@@ -307,18 +307,19 @@ struct redisCommand redisCommandTable[] = {
     {"slotshashkey",slotshashkeyCommand,-1,"rF",0,NULL,0,0,0,0,0},
     {"slotscheck",slotscheckCommand,0,"r",0,NULL,0,0,0,0,0},
     {"slotsrestore",slotsrestoreCommand,-4,"wm",0,NULL,0,0,0,0,0},
-    {"slotsmgrtslot-async",slotsmgrtSlotAsyncCommand,8,"w",0,NULL,0,0,0,0,0},
-    {"slotsmgrttagslot-async",slotsmgrtTagSlotAsyncCommand,8,"w",0,NULL,0,0,0,0,0},
-    {"slotsmgrtone-async",slotsmgrtOneAsyncCommand,-7,"w",0,NULL,0,0,0,0,0},
-    {"slotsmgrttagone-async",slotsmgrtTagOneAsyncCommand,-7,"w",0,NULL,0,0,0,0,0},
+    {"slotsmgrtslot-async",slotsmgrtSlotAsyncCommand,8,"ws",0,NULL,0,0,0,0,0},
+    {"slotsmgrttagslot-async",slotsmgrtTagSlotAsyncCommand,8,"ws",0,NULL,0,0,0,0,0},
+    {"slotsmgrtone-async",slotsmgrtOneAsyncCommand,-7,"ws",0,NULL,0,0,0,0,0},
+    {"slotsmgrttagone-async",slotsmgrtTagOneAsyncCommand,-7,"ws",0,NULL,0,0,0,0,0},
     {"slotsmgrtone-async-dump",slotsmgrtOneAsyncDumpCommand,-4,"rm",0,NULL,0,0,0,0,0},
     {"slotsmgrttagone-async-dump",slotsmgrtTagOneAsyncDumpCommand,-4,"rm",0,NULL,0,0,0,0,0},
-    {"slotsmgrt-async-fence",slotsmgrtAsyncFenceCommand,0,"r",0,NULL,0,0,0,0,0},
+    {"slotsmgrt-async-fence",slotsmgrtAsyncFenceCommand,0,"rs",0,NULL,0,0,0,0,0},
     {"slotsmgrt-async-cancel",slotsmgrtAsyncCancelCommand,0,"F",0,NULL,0,0,0,0,0},
     {"slotsmgrt-async-status",slotsmgrtAsyncStatusCommand,0,"F",0,NULL,0,0,0,0,0},
     {"slotsmgrt-exec-wrapper",slotsmgrtExecWrapperCommand,-3,"wm",0,NULL,0,0,0,0,0},
-    {"slotsrestore-async",slotsrestoreAsyncCommand,-2,"w",0,NULL,0,0,0,0,0},
-    {"slotsrestore-async-auth",slotsrestoreAsyncAuthCommand,2,"F",0,NULL,0,0,0,0,0},
+    {"slotsrestore-async",slotsrestoreAsyncCommand,-2,"wm",0,NULL,0,0,0,0,0},
+    {"slotsrestore-async-auth",slotsrestoreAsyncAuthCommand,2,"sltF",0,NULL,0,0,0,0,0},
+    {"slotsrestore-async-select",slotsrestoreAsyncSelectCommand,2,"lF",0,NULL,0,0,0,0,0},
     {"slotsrestore-async-ack",slotsrestoreAsyncAckCommand,3,"w",0,NULL,0,0,0,0,0},
 };
 
@@ -1594,6 +1595,7 @@ void initServerConfig(void) {
     server.migrate_cached_sockets = dictCreate(&migrateCacheDictType,NULL);
     server.next_client_id = 1; /* Client IDs, start from 1 .*/
     server.loading_process_events_interval_bytes = (1024*1024*2);
+    server.lua_time_limit = LUA_SCRIPT_TIME_LIMIT;
 
     server.lruclock = getLRUClock();
     resetServerSaveParams();

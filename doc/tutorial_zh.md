@@ -2,9 +2,38 @@
 
 Codis 是一个分布式 Redis 解决方案, 对于上层的应用来说, 连接到 Codis Proxy 和连接原生的 Redis Server 没有显著区别 ([不支持的命令列表](unsupported_cmds.md)), 上层应用可以像使用单机的 Redis 一样使用, Codis 底层会处理请求的转发, 不停机的数据迁移等工作, 所有后边的一切事情, 对于前面的客户端来说是透明的, 可以简单的认为后边连接的是一个内存无限大的 Redis 服务。
 
+## codis版本简介
+codis目前主要release版本如下:
+### codis 1.9
+> * codis-server 基于 redis-2.8.13
+> * codis-proxy 对 pipeline 支持不友好
+> * codis-proxy 对 zk 强依赖
+> * 同步迁移性能差，不支持大 key 迁移
+### codis 2.0
+> * codis-server 基于 redis-2.8.21
+> * 重构了codis-proxy，性能大幅提升，对 pipeline 支持比较好
+> * codis-proxy 对 zk 强依赖
+> * 同步迁移性能差，不支持大key迁移
+### codis 3.x
+> * 最新 release 版本为 codis-3.2，codis-server 基于 redis-3.2.8
+> * 支持 slot 同步迁移、异步迁移和并发迁移，对 key 大小无任何限制，迁移性能大幅度提升
+> * 相比 2.0：重构了整个集群组件通信方式，codis-proxy 与 zookeeper 实现了解耦，废弃了codis-config 等
+> * 元数据存储支持 etcd/zookeeper/filesystem 等，可自行扩展支持新的存储，集群正常运行期间，即便元存储故障也不再影响 codis 集群，大大提升 codis-proxy 稳定性
+> * 对 codis-proxy 进行了大量性能优化,通过控制GC频率、减少对象创建、内存预分配、引入 `cgo`、`jemalloc` 等，使其吞吐还是延迟，都已达到 codis 项目中最佳
+> * proxy 实现 select 命令，支持多 DB
+> * proxy 支持读写分离、优先读同 IP/同 DC 下副本功能
+> * 基于 redis-sentinel 实现主备自动切换
+> * 实现动态 pipeline 缓存区（减少内存分配以及所引起的 GC 问题）
+> * proxy 支持通过 HTTP 请求实时获取 runtime metrics，便于监控、运维
+> * 支持通过 influxdb 和 statsd 采集 proxy metrics
+> * slot auto rebalance 算法从 2.0 的基于 max memory policy 变更成基于 group 下 slot 数量
+> * 提供了更加友好的 dashboard 和 fe 界面，新增了很多按钮、跳转链接、错误状态等，有利于快速发现、处理集群故障
+> * 新增 `SLOTSSCAN` 指令，便于获取集群各个 slot 下的所有 key
+> * codis-proxy 与 codis-dashbaord 支持 docker 部署
+
 Codis 3.x 由以下组件组成：
 
-* **Codis Server**：基于 redis-2.8.21 分支开发。增加了额外的数据结构，以支持 slot 有关的操作以及数据迁移指令。具体的修改可以参考文档 [redis 的修改](redis_change_zh.md)。
+* **Codis Server**：基于 redis-3.2.8 分支开发。增加了额外的数据结构，以支持 slot 有关的操作以及数据迁移指令。具体的修改可以参考文档 [redis 的修改](redis_change_zh.md)。
 
 * **Codis Proxy**：客户端连接的 Redis 代理服务, 实现了 Redis 协议。 除部分命令不支持以外([不支持的命令列表](unsupported_cmds.md))，表现的和原生的 Redis 没有区别（就像 Twemproxy）。
 
@@ -25,17 +54,18 @@ Codis 3.x 由以下组件组成：
     + 多个集群实例共享可以共享同一个前端展示页面；
     + 通过配置文件管理后端 codis-dashboard 列表，配置文件可自动更新。
 
-* **Codis HA**：为集群提供高可用。
-
-    + 依赖 codis-dashboard 实例，自动抓取集群各个组件的状态；
-    + 会根据当前集群状态自动生成主从切换策略，并在需要时通过 codis-dashboard 完成主从切换。
-
 * **Storage**：为集群状态提供外部存储。
 
     + 提供 Namespace 概念，不同集群的会按照不同 product name 进行组织；
-    + 目前仅提供了 Zookeeper 和 Etcd 两种实现，但是提供了抽象的 interface 可自行扩展。
+    + 目前仅提供了 Zookeeper、Etcd、Fs 三种实现，但是提供了抽象的 interface 可自行扩展。
 
 ## 0. 下载与编译
+
+### 下载[release binary](https://github.com/CodisLabs/codis/releases)文件安装
+如果是重要的生产环境使用，尽量不要选择alpha、rc版本。
+根据自己的部署平台，选择相应的文件下载即可。
+
+### 编译源码安装
 
 #### 1. 安装 Go 运行环境 [参考这里](https://golang.org/doc/install)
 
@@ -43,7 +73,7 @@ Codis 3.x 由以下组件组成：
 
 ```bash
 $ go version
-go version go1.5.2 linux/amd64
+go version go1.7.3 linux/amd64
 ```
 
 #### 2. 设置编译环境
@@ -63,7 +93,7 @@ Codis 源代码需要下载到 `$GOPATH/src/github.com/CodisLabs/codis`：
 
 ```bash
 $ mkdir -p $GOPATH/src/github.com/CodisLabs
-$ cd $_ && git clone https://github.com/CodisLabs/codis.git -b release3.1
+$ cd $_ && git clone https://github.com/CodisLabs/codis.git -b release3.2
 ```
 
 #### 4. 编译 Codis 源代码
@@ -78,7 +108,6 @@ make -j -C extern/redis-3.2.8/
 go build -i -o bin/codis-dashboard ./cmd/dashboard
 go build -i -o bin/codis-proxy ./cmd/proxy
 go build -i -o bin/codis-admin ./cmd/admin
-go build -i -o bin/codis-ha ./cmd/ha
 go build -i -o bin/codis-fe ./cmd/fe
 
 $ ls bin/
@@ -87,7 +116,6 @@ drwxr-xr-x 4 codis codis     4096 Jan  4 14:55 assets
 -rwxr-xr-x 1 codis codis 17600752 Jan  4 14:55 codis-admin
 -rwxr-xr-x 1 codis codis 18416320 Jan  4 14:55 codis-dashboard
 -rwxr-xr-x 1 codis codis  9498040 Jan  4 14:55 codis-fe
--rwxr-xr-x 1 codis codis  9956328 Jan  4 14:55 codis-ha
 -rwxr-xr-x 1 codis codis 11057280 Jan  4 14:55 codis-proxy
 -rwxr-xr-x 1 codis codis  4234432 Jan  4 14:55 codis-server
 -rw-r--r-- 1 codis codis      148 Jan  4 14:55 version
@@ -99,59 +127,98 @@ compile = 2016-01-04 15:00:17 +0800 by go version go1.5.2 linux/amd64
 ```
 
 ## 1. 快速启动
+2分钟快速构建一个单机版测试 codis 集群，无任何外部组件依赖.
 
-源码中提供了可供本地测试使用的脚本 `example/setup.py`，该脚本会生成一个本地集群。
+源码中 admin 文件夹提供了一系列脚本以便快速启动、停止各个组件，提高运维效率。
 
-**注意：脚本依赖 etcd 作为外部存储，启动时会创建一个占用 2379 端口的 etcd 实例；如果本地已经存在该实例，会导致可能污染该实例（写入测试程序所需配置文件）并最终启动失败。**
+### 启动codis-dashboard
+使用 `codis-dashboard-admin.sh` 脚本启动 dashboard，并查看 dashboard 日志确认启动是否有异常。
 
-+ 脚本会输出每一个进程的 PID，并将每个实例的日志会输出到 `tmp` 目录下；
-+ 启动后，可以通过 http://127.0.0.1:8080 来访问 codis-fe。
-
-```bash
-$ which etcd &>/dev/null || go get github.com/coreos/etcd
-$ python3 setup.py
-init etcd, done
-    >> server.port = 16379
-    >> server.port = 16380
-    >> server.port = 16381
-    >> server.port = 16382
-    >> server.port = 17379
-    >> server.port = 17380
-    >> server.port = 17381
-    >> server.port = 17382
-init codis-server, done
-    >> sentinel.port = 26379
-    >> sentinel.port = 26380
-    >> sentinel.port = 26381
-    >> sentinel.port = 26382
-    >> sentinel.port = 26383
-init codis-sentinel, done
-checkall, done
-    >> dashboard.admin_port = 18080
-init codis-dashboard, done
-checkall, done
-    >> proxy.admin_port = 11080
-    >> proxy.proxy_port = 19000
-    >> proxy.admin_port = 11081
-    >> proxy.proxy_port = 19001
-    >> proxy.admin_port = 11082
-    >> proxy.proxy_port = 19002
-    >> proxy.admin_port = 11083
-    >> proxy.proxy_port = 19003
-init codis-proxy, done
-    >> fe.listen = 8080
-init codis-fe, done
-checkall, done
-create groups, done
-add sentinels, done
-Mon Jan  4 15:10:44 CST 2016
-Mon Jan  4 15:11:14 CST 2016
-... ...
 ```
+./admin/codis-dashboard-admin.sh start
+ tail -100 ./log/codis-dashboard.log.2017-04-08
+```
+```
+2017/04/08 15:16:57 fsclient.go:197: [INFO] fsclient - create /codis3/codis-demo/topom OK
+2017/04/08 15:16:57 main.go:140: [WARN] [0xc42025f7a0] dashboard is working ...
+2017/04/08 15:16:57 topom.go:424: [WARN] admin start service on [::]:18080
+```
+
+快速启动集群元数据存储使用 `filesystem`，默认数据路径保存在 `/tmp/codis`，若启动失败，请检查当前用户是否对该路径拥有读写权限。
+
+### 启动codis-proxy
+使用 `codis-proxy-admin.sh` 脚本启动 codis-proxy，并查看 proxy 日志确认启动是否有异常。
+
+```
+./admin/codis-proxy-admin.sh start
+tail -100 ./log/codis-proxy.log.2017-04-08
+```
+```
+2017/04/08 15:39:37 proxy.go:293: [WARN] [0xc4200df760] set sentinels = []
+2017/04/08 15:39:37 main.go:320: [WARN] rpc online proxy seems OK
+2017/04/08 15:39:38 main.go:210: [WARN] [0xc4200df760] proxy is working ...
+```
+
+### 启动codis-server
+使用 `codis-server-admin.sh` 脚本启动 codis-server，并查看 redis 日志确认启动是否有异常。
+
+```
+./admin/codis-server-admin.sh start
+tail -100 /tmp/redis_6379.log 
+```
+```
+5706:M 08 Apr 16:04:11.748 * DB loaded from disk: 0.000 seconds
+5706:M 08 Apr 16:04:11.748 * The server is now ready to accept connections on port 6379
+```
+redis.conf 配置中 pidfile、logfile 默认保存在 `/tmp` 目录，若启动失败，请检查当前用户是否有该目录的读写权限。
+
+### 启动codis-fe
+使用 `codis-fe-admin.sh` 脚本启动 codis-fe，并查看 fe 日志确认启动是否有异常。
+
+```
+./admin/codis-fe-admin.sh start
+tail -100 ./log/codis-fe.log.2017-04-08
+```
+```
+2017/04/08 16:12:13 main.go:100: [WARN] set ncpu = 1
+2017/04/08 16:12:13 main.go:103: [WARN] set listen = 0.0.0.0:9090
+2017/04/08 16:12:13 main.go:115: [WARN] set assets = /home/codis/go/src/github.com/CodisLabs/codis/admin/../bin/assets
+2017/04/08 16:12:13 main.go:153: [WARN] set --filesystem = /tmp/codis
+```
+
+### 通过fe添加group
+通过web浏览器访问集群管理页面(fe地址:127.0.0.1:9090)
+选择我们刚搭建的集群 codis-demo，在 Proxy 栏可看到我们已经启动的 Proxy，
+但是 Group 栏为空，因为我们启动的 codis-server 并未加入到集群
+添加 `NEW GROUP`，`NEW GROUP` 行输入 1，再点击 `NEW GROUP` 即可
+添加 Codis Server，`Add Server` 行输入我们刚刚启动的 codis-server 地址，添加到我们刚新建的 Group，然后再点击 `Add Server` 按钮即可，如下图所示
+
+![addgroup](pictures/addgroup.jpg)
+
+### 通过fe初始化slot
+新增的集群 slot 状态是 offline，因此我们需要对它进行初始化（将 1024 个 slot 分配到各个 group），而初始化最快的方法可通过 fe 提供的 `rebalance all slots` 按钮来做，如下图所示，点击此按钮，我们即快速完成了一个集群的搭建。
+
+![rebalance_slots](pictures/rebalance_slots.jpg)
+
+
+## 通过 ansible 快速部署集群
+
+使用 ansible 可快速在单机、多机部署多套 codis 集群。
+ansible 文件夹包含了部署 codis 集群的 playbook，根据自己部署环境修改 `groups_var/all` 文件里参数，修改 hosts 文件添加部署的环境 IP 即可。
+ansible 安装也及其简单，各部署机器无需安装任何额外的 agent，彼此之间通过 ssh 通信。
+
+```
+git clone git://github.com/ansible/ansible.git -b stable-2.3
+cd ./ansible
+source ./hacking/env-setup
+cd $codis_dir/ansible
+ansible-playbook -i hosts site.yml
+```
+
 
 ## 2. 启动及参数
 
-**注意：请按照顺序逐步完成操作。默认使用 `zookeeper` 作为外部存储。**
+**注意：请按照顺序逐步完成操作。生产环境建议修改dashboard coordinator_name配置，使用 `zookeeper` 或`etctd`作为外部存储。**
 
 **注意：Codis 3.x 支持 AUTH，但是要求所有组件使用的 AUTH 必须完全相同。**
 
@@ -375,53 +442,11 @@ $ ./bin/codis-admin --dashboard-list --zookeeper=127.0.0.1:2181 | tee codis.json
 ]
 ```
 
-#### 2.5 Codis HA（可选组件）
-
-##### 2.5.1 启动命令：
-
-```bash
-$ nohup ./bin/codis-ha --log=ha.log --log-level=WARN --dashboard=127.0.0.1:18080 &
-```
-
-##### 2.5.2 详细说明：
-
-```bash
-$ ./bin/codis-ha -h
-Usage:
-	codis-ha [--log=FILE] [--log-level=LEVEL] --dashboard=ADDR
-	codis-ha  --version
-
-Options:
-	-l FILE, --log=FILE         设置 log 输出文件
-	--log-level=LEVEL           设置 log 输出等级：INFO,WARN,DEBUG,ERROR；默认INFO，推荐WARN
-```
-##### 2.5.3 工作原理：
-
-**注意：Codis HA 工具仅仅是 Codis 集群 HA 的一部分，单独工作能力有限。**
-
-**注意：Codis 同时支持 sentinel 作为 HA，codis-ha 已经不推荐使用了。**
-
-+ 默认以 5s 为周期，codis-ha 会从 codis-dashboard 中拉取集群状态，并进行主从切换；
-
-+ codis-ha 在以下状态下会退出：
-    1. 从 codis-dashboard 获取集群状态失败时；
-    2. 向 codis-dashboard 发送主从切换指令失败时；
-
-+ codis-ha 在以下状态下不会进行主从切换：
-    1. 存在 proxy 状态异常：
-        + 因为提升主从需要得到所有 proxy 的确认，因此必须确保操作时所有 proxy 都能正常响应操作指令；
-    2. 网络原因造成的 master 异常：
-        + 若存在 slave 满足 `slave.master_link_status == up`，通常可以认为 master 并没有真的退出，而是由于网络原因或者响应延迟造成的 master 状态获取失败，此时 codis-ha 不会对该 group 进行操作；
-    3. 没有满足条件的 slave 时：
-        + 提升过程会选择满足 `slave.master_link_status == down`，并且 `slave.master_link_down_since_seconds` 最小的进行操作。这就要求被选择的 slave 至少在过去一段时间内与 master 是成功同步状态，这个时间间隔是 `2d+5`，其中 `d` 是 codis-ha 检查周期默认 `5`秒。
-
-**注意：因此，应用 codis-ha 时还需要结合对 codis-proxy 和 codis-server 的可用性监控，否则 codis-ha 无法保证可靠性。**
-
-#### 2.6 Codis Admin（命令行工具）
+#### 2.5 Codis Admin（命令行工具）
 
 **注意：使用 codis-admin 是十分危险的。**
 
-##### 2.6.1 codis-dashboard 异常退出的修复
+##### 2.5.1 codis-dashboard 异常退出的修复
 
 当 codis-dashboard 启动时，会在外部存储上存放一条数据，用于存储 dashboard 信息，同时作为 LOCK 存在。当 codis-dashboard 安全退出时，会主动删除该数据。当 codis-dashboard 异常退出时，由于之前 LOCK 未安全删除，重启往往会失败。因此 codis-admin 提供了强制删除工具：
 
@@ -432,7 +457,7 @@ Options:
 $ ./bin/codis-admin --remove-lock --product=codis-demo --zookeeper=127.0.0.1:2181
 ```
 
-##### 2.6.2 codis-proxy 异常退出的修复
+##### 2.5.2 codis-proxy 异常退出的修复
 
 通常 codis-proxy 都是通过 codis-dashboard 进行移除，移除过程中 codis-dashboard 为了安全会向 codis-proxy 发送 `offline` 指令，成功后才会将 proxy 信息从外部存储中移除。如果 codis-proxy 异常退出，该操作会失败。此时可以使用 codis-admin 工具进行移除：
 

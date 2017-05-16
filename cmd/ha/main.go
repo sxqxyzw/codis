@@ -79,7 +79,7 @@ Options:
 		hc := newHealthyChecker(client)
 		hc.LogProxyStats()
 		hc.LogGroupStats()
-		hc.Maintains(client, interval*5+5)
+		hc.Maintains(client)
 
 		time.Sleep(time.Second * time.Duration(interval))
 	}
@@ -231,7 +231,7 @@ func (hc *HealthyChecker) LogGroupStats() {
 	}
 }
 
-func (hc *HealthyChecker) Maintains(client *topom.ApiClient, maxdown int) {
+func (hc *HealthyChecker) Maintains(client *topom.ApiClient) {
 	/*
 		var giveup int
 		for t, code := range hc.pstatus {
@@ -251,26 +251,28 @@ func (hc *HealthyChecker) Maintains(client *topom.ApiClient, maxdown int) {
 			switch hc.sstatus[g.Servers[0].Addr] {
 			case CodeMissing, CodeError, CodeTimeout:
 				var synced int
-				var picked, mindown = 0, maxdown + 1
+				var picked = 0
 				for i := 1; i < len(g.Servers); i++ {
 					var addr = g.Servers[i].Addr
 					switch hc.sstatus[addr] {
 					case CodeSyncReady:
 						synced++
 					case CodeSyncBroken, CodeSyncError:
-						if stats := hc.Group.Stats[addr]; stats != nil && stats.Stats != nil {
-							n, err := strconv.Atoi(stats.Stats["master_link_down_since_seconds"])
-							if err != nil {
-								continue
-							}
-							if n >= 0 && n < mindown {
-								picked, mindown = i, n
-							}
-						}
+						picked = i
+						/*
+							if stats := hc.Group.Stats[addr]; stats != nil && stats.Stats != nil {
+								n, err := strconv.Atoi(stats.Stats["master_link_down_since_seconds"])
+								if err != nil {
+									continue
+								}
+								if n >= 0 && n < mindown {
+									picked, mindown = i, n
+								}
+							}*/
 					}
 				}
 				switch {
-				case synced != 0 || picked == 0:
+				case picked == 0:
 					log.Warnf("try to promote group-[%d], but synced = %d & picked = %d, giveup", g.Id, synced, picked)
 				case g.Promoting.State != "":
 					log.Warnf("try to promote group-[%d], but group is promoting = %s, please fix it manually", g.Id, g.Promoting.State)

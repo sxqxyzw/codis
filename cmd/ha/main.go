@@ -232,19 +232,19 @@ func (hc *HealthyChecker) LogGroupStats() {
 }
 
 func (hc *HealthyChecker) Maintains(client *topom.ApiClient, maxdown int) {
-/*
-	var giveup int
-	for t, code := range hc.pstatus {
-		if code != CodeAlive {
-			log.Warnf("proxy-[%s] is unhealthy, please fix it manually", t)
-			giveup++
+	/*
+		var giveup int
+		for t, code := range hc.pstatus {
+			if code != CodeAlive {
+				log.Warnf("proxy-[%s] is unhealthy, please fix it manually", t)
+				giveup++
+			}
 		}
-	}
 
-	if giveup != 0 {
-		return
-	}
-*/
+		if giveup != 0 {
+			return
+		}
+	*/
 
 	for _, g := range hc.Group.Models {
 		if len(g.Servers) != 0 {
@@ -257,7 +257,7 @@ func (hc *HealthyChecker) Maintains(client *topom.ApiClient, maxdown int) {
 					switch hc.sstatus[addr] {
 					case CodeSyncReady:
 						synced++
-					case CodeSyncBroken，CodeSyncError:
+					case CodeSyncBroken, CodeSyncError:
 						if stats := hc.Group.Stats[addr]; stats != nil && stats.Stats != nil {
 							n, err := strconv.Atoi(stats.Stats["master_link_down_since_seconds"])
 							if err != nil {

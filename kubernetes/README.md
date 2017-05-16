@@ -1,5 +1,15 @@
 ## Usage
 
+### dependence
+
+This codis running in k8s need zookeeper running in the k8s environment, or some other zookeeper cluster accessible.
+
+### Build codis image
+
+```
+$ docker build -f ../Dockerfile -t codis-image
+```
+
 ### Build one codis cluster
 
 ```

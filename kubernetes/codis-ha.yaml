@@ -10,20 +10,22 @@ spec:
         app: codis-ha
     spec:
       imagePullSecrets:
-      - name: cn-registry
+      - name: your-registry
       containers:
       - name: codis-ha
-        image: codis-image:k8s
+        image: codis-image
         imagePullPolicy: IfNotPresent
         command: ["codis-ha"]
-        args: ["-l","log/codis-ha.log","--interval","5","--dashboard=codis-dashboard:18080"]
+        args: ["-l","log/$(POD_NAME).log","--interval","5","--dashboard=codis-dashboard:18080"]
         env:
-        - name: CODIS_PATH
-          value: "/gopath/src/github.com/CodisLabs/codis"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name 
         resources:
           limits:
-            cpu: "1"
-            memory: 1Gi
+            cpu: "2"
+            memory: 2Gi
           requests:
             cpu: "0.1"
             memory: 0.1Gi

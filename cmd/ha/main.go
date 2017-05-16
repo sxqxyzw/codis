@@ -284,7 +284,7 @@ func (hc *HealthyChecker) Maintains(client *topom.ApiClient) {
 					}
 					log.Warnf("done.")
 				}
-			case CodeAlive:
+			case CodeSyncReady:
 				for i := 1; i < len(g.Servers); i++ {
 					var addr = g.Servers[i].Addr
 					switch hc.sstatus[addr] {

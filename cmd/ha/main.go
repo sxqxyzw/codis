@@ -272,24 +272,25 @@ func (hc *HealthyChecker) Maintains(client *topom.ApiClient) {
 					var slave = g.Servers[picked].Addr
 					log.Warnf("try to promote group-[%d] with slave %s", g.Id, slave)
 					if err := client.GroupPromoteServer(g.Id, slave); err != nil {
-						log.PanicErrorf(err, "rpc promote server failed")
+						log.ErrorErrorf(err, "rpc promote server failed")
 					}
 					log.Warnf("done.")
 				}
-			case CodeSyncReady:
-				for i := 1; i < len(g.Servers); i++ {
-					var addr = g.Servers[i].Addr
-					switch hc.sstatus[addr] {
+				/*
 					case CodeSyncReady:
-						continue
-					case CodeSyncBroken, CodeSyncError:
-						log.Warnf("try to sync group-[%d]  slave %s with master %s", g.Id, addr, g.Servers[0].Addr)
-						if err := client.SyncCreateAction(addr); err != nil {
-							log.PanicErrorf(err, "rpc sync slave failed")
-						}
-						log.Warnf("sync done.")
-					}
-				}
+						for i := 1; i < len(g.Servers); i++ {
+							var addr = g.Servers[i].Addr
+							switch hc.sstatus[addr] {
+							case CodeSyncReady:
+								continue
+							case CodeSyncBroken, CodeSyncError:
+								log.Warnf("try to sync group-[%d]  slave %s with master %s", g.Id, addr, g.Servers[0].Addr)
+								if err := client.SyncCreateAction(addr); err != nil {
+									log.ErrorErrorf(err, "rpc sync slave failed")
+								}
+								log.Warnf("sync done.")
+							}
+						}*/
 			}
 		}
 	}

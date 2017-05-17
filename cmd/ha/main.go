@@ -232,20 +232,42 @@ func (hc *HealthyChecker) LogGroupStats() {
 }
 
 func (hc *HealthyChecker) Maintains(client *topom.ApiClient) {
-	/*
-		var giveup int
-		for t, code := range hc.pstatus {
-			if code != CodeAlive {
-				log.Warnf("proxy-[%s] is unhealthy, please fix it manually", t)
-				giveup++
+	// remove proxy at state error from codis
+	for _, p := range hc.Proxy.Models {
+		switch hc.pstatus[p.Token] {
+		case CodeError:
+			log.Warnf("try to remove proxy-[%s]", p.AdminAddr)
+			if err := client.RemoveProxy(p.Token, true); err != nil {
+				log.ErrorErrorf(err, "call rpc remove-proxy to dashboard %s failed", p.AdminAddr)
+			}
+			log.Warnf("try to remove proxy done.")
+			return
+		default:
+			continue
+		}
+	}
+
+	// remove server at state error from codis
+	for _, g := range hc.Group.Models {
+		for i, x := range g.Servers {
+			if i == 0 {
+				continue
+			}
+			switch hc.sstatus[x.Addr] {
+			case CodeError:
+				log.Warnf("try to group-del-server to dashboard %s", x.Addr)
+				if err := client.GroupDelServer(g.Id, x.Addr); err != nil {
+					log.ErrorErrorf(err, "call rpc group-del-server to dashboard %s failed", x.Addr)
+				}
+				log.Debugf("call rpc group-del-server OK")
+				return
+			default:
+				continue
 			}
 		}
+	}
 
-		if giveup != 0 {
-			return
-		}
-	*/
-
+	// promote group server
 	for _, g := range hc.Group.Models {
 		if len(g.Servers) != 0 {
 			switch hc.sstatus[g.Servers[0].Addr] {
@@ -276,21 +298,6 @@ func (hc *HealthyChecker) Maintains(client *topom.ApiClient) {
 					}
 					log.Warnf("done.")
 				}
-				/*
-					case CodeSyncReady:
-						for i := 1; i < len(g.Servers); i++ {
-							var addr = g.Servers[i].Addr
-							switch hc.sstatus[addr] {
-							case CodeSyncReady:
-								continue
-							case CodeSyncBroken, CodeSyncError:
-								log.Warnf("try to sync group-[%d]  slave %s with master %s", g.Id, addr, g.Servers[0].Addr)
-								if err := client.SyncCreateAction(addr); err != nil {
-									log.ErrorErrorf(err, "rpc sync slave failed")
-								}
-								log.Warnf("sync done.")
-							}
-						}*/
 			}
 		}
 	}

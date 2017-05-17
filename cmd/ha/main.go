@@ -276,7 +276,7 @@ func (hc *HealthyChecker) Maintains(client *topom.ApiClient) {
 					log.Warnf("try to promote group-[%d], but synced = %d & picked = %d, giveup", g.Id, synced, picked)
 				case g.Promoting.State != "":
 					log.Warnf("try to promote group-[%d], but group is promoting = %s, please fix it manually", g.Id, g.Promoting.State)
-				default:
+				case picked > 0:
 					var slave = g.Servers[picked].Addr
 					log.Warnf("try to promote group-[%d] with slave %s", g.Id, slave)
 					if err := client.GroupPromoteServer(g.Id, slave); err != nil {

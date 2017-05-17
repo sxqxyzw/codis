@@ -121,10 +121,24 @@ func (s *Topom) GroupAddPermitCheck(gid int, addr string) error {
 		return errors.Errorf("group-[%d] is promoting", g.Id)
 	}
 
+	defer s.dirtyGroupCache(g.Id)
+
 	if len(g.Servers) > 1 && addr == ctx.getGroupMaster(gid) {
+		stats, err := s.Stats()
+		if err != nil {
+			return errors.Errorf("get topom stats err")
+		}
+		for _, x := range g.Servers {
+			var addr = x.Addr
+			switch rs := stats.Group.Stats[addr]; {
+			case rs == nil, rs.Error != nil, rs.Timeout || rs.Stats == nil:
+				continue
+			default:
+				return nil
+			}
+		}
 		return errors.Errorf("not permit, wait ha promote master")
 	}
-	defer s.dirtyGroupCache(g.Id)
 
 	return nil
 }

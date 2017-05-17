@@ -258,17 +258,9 @@ func (hc *HealthyChecker) Maintains(client *topom.ApiClient) {
 					case CodeSyncReady:
 						synced++
 					case CodeSyncBroken, CodeSyncError:
-						picked = i
-						/*
-							if stats := hc.Group.Stats[addr]; stats != nil && stats.Stats != nil {
-								n, err := strconv.Atoi(stats.Stats["master_link_down_since_seconds"])
-								if err != nil {
-									continue
-								}
-								if n >= 0 && n < mindown {
-									picked, mindown = i, n
-								}
-							}*/
+						if stats := hc.Group.Stats[addr]; stats != nil && stats.Stats != nil {
+							picked = i
+						}
 					}
 				}
 				switch {

@@ -115,6 +115,17 @@ Options:
 	}
 	defer client.Close()
 
+	// remove-lock before start dashboard
+	store := models.NewStore(client, config.ProductName)
+	defer store.Close()
+
+	log.Warnf("force remove-lock")
+	if err := store.Release(); err != nil {
+		log.WarnErrorf(err, "force remove-lock failed")
+	} else {
+		log.Warnf("force remove-lock OK")
+	}
+
 	s, err := topom.New(client, config)
 	if err != nil {
 		log.PanicErrorf(err, "create topom with config file failed\n%s", config)

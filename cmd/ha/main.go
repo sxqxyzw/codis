@@ -235,7 +235,7 @@ func (hc *HealthyChecker) Maintains(client *topom.ApiClient) {
 	// remove proxy at state error from codis
 	for _, p := range hc.Proxy.Models {
 		switch hc.pstatus[p.Token] {
-		case CodeError:
+		case CodeError, CodeTimeout, CodeMissing:
 			log.Warnf("try to remove proxy-[%s]", p.AdminAddr)
 			if err := client.RemoveProxy(p.Token, true); err != nil {
 				log.ErrorErrorf(err, "call rpc remove-proxy to dashboard %s failed", p.AdminAddr)
@@ -254,7 +254,7 @@ func (hc *HealthyChecker) Maintains(client *topom.ApiClient) {
 				continue
 			}
 			switch hc.sstatus[x.Addr] {
-			case CodeError:
+			case CodeError, CodeMissing:
 				log.Warnf("try to group-del-server to dashboard %s", x.Addr)
 				if err := client.GroupDelServer(g.Id, x.Addr); err != nil {
 					log.ErrorErrorf(err, "call rpc group-del-server to dashboard %s failed", x.Addr)

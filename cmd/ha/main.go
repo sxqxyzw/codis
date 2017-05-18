@@ -14,6 +14,7 @@ import (
 	"github.com/CodisLabs/codis/pkg/utils"
 	"github.com/CodisLabs/codis/pkg/utils/log"
 	"github.com/CodisLabs/codis/pkg/utils/math2"
+	"github.com/CodisLabs/codis/pkg/utils/redis"
 )
 
 func main() {
@@ -239,6 +240,7 @@ func (hc *HealthyChecker) Maintains(client *topom.ApiClient) {
 			log.Warnf("try to remove proxy-[%s]", p.AdminAddr)
 			if err := client.RemoveProxy(p.Token, true); err != nil {
 				log.ErrorErrorf(err, "call rpc remove-proxy to dashboard %s failed", p.AdminAddr)
+				return
 			}
 			log.Warnf("try to remove proxy done.")
 			return
@@ -258,8 +260,22 @@ func (hc *HealthyChecker) Maintains(client *topom.ApiClient) {
 				log.Warnf("try to group-del-server to dashboard %s", x.Addr)
 				if err := client.GroupDelServer(g.Id, x.Addr); err != nil {
 					log.ErrorErrorf(err, "call rpc group-del-server to dashboard %s failed", x.Addr)
+					return
 				}
 				log.Debugf("call rpc group-del-server OK")
+
+				// trt to shutdown codis-server as slave in error state
+				log.Warnf("try to shutdown codis-server(slave) %s", x.Addr)
+				c, err := redis.NewClientNoAuth(x.Addr, time.Minute*30)
+				if err != nil {
+					log.WarnErrorf(err, "connect to codis-server(slave) %s failed", x.Addr)
+					return
+				}
+				defer c.Close()
+				if err := c.Shutdown(); err != nil {
+					log.WarnErrorf(err, "try to shutdown codis-server %s failed", x.Addr)
+					return
+				}
 				return
 			default:
 				continue

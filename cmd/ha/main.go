@@ -328,8 +328,10 @@ Groups:
 						if stats := hc.Group.Stats[addr]; stats != nil && stats.Stats != nil {
 							n, err := strconv.Atoi(stats.Stats["master_link_down_since_seconds"])
 							if err != nil {
-								log.WarnErrorf(err, "try to get %s master_link_down_since_seconds failed", addr)
-								continue
+								// pika info does not have this, future will added in pika, so if the server is pika, it's ok, otherwise it has problem
+								log.WarnErrorf(err, "try to get %s master_link_down_since_seconds failed, if server the pika, it's ok ", addr)
+								picked = i
+								break
 							}
 							if n >= 0 && n < mindown {
 								picked, mindown = i, n

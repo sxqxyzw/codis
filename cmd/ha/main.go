@@ -70,7 +70,7 @@ Options:
 
 	t, err := client.Model()
 	if err != nil {
-		log.PanicErrorf(err, "rpc fetch model failed")
+		log.ErrorErrorf(err, "rpc dashboard fetch model failed")
 	}
 	log.Warnf("topom =\n%s", t.Encode())
 
@@ -108,7 +108,7 @@ type HealthyChecker struct {
 func newHealthyChecker(client *topom.ApiClient) *HealthyChecker {
 	stats, err := client.Stats()
 	if err != nil {
-		log.PanicErrorf(err, "rpc stats failed")
+		log.ErrorErrorf(err, "rpc dashboard get stats failed")
 	}
 
 	hc := &HealthyChecker{Stats: stats}

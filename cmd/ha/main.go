@@ -75,7 +75,7 @@ Options:
 
 	t, err := client.Model()
 	if err != nil {
-		log.PanicErrorf(err, "rpc fetch model failed")
+		log.ErrorErrorf(err, "rpc fetch model failed")
 	}
 	log.Warnf("topom =\n%s", t.Encode())
 
@@ -83,7 +83,7 @@ Options:
 
 	overview, err := client.Overview()
 	if err != nil {
-		log.PanicErrorf(err, "rpc fetch overview failed")
+		log.ErrorErrorf(err, "rpc fetch overview failed")
 	}
 	prodcutAuth := overview.Config.ProductAuth
 
@@ -121,7 +121,7 @@ type HealthyChecker struct {
 func newHealthyChecker(client *topom.ApiClient) *HealthyChecker {
 	stats, err := client.Stats()
 	if err != nil {
-		log.PanicErrorf(err, "rpc stats failed")
+		log.ErrorErrorf(err, "rpc stats failed")
 	}
 
 	hc := &HealthyChecker{Stats: stats}

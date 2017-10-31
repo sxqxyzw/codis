@@ -329,6 +329,7 @@ Groups:
 							n, err := strconv.Atoi(stats.Stats["master_link_down_since_seconds"])
 							if err != nil {
 								log.WarnErrorf(err, "try to get %s master_link_down_since_seconds failed", addr)
+								picked = i
 								continue
 							}
 							if n >= 0 && n < mindown {
